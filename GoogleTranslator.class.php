@@ -40,28 +40,24 @@ class GoogleTranslator
 	 */
 	public function translate($text)
 	{
-		$curl = curl_init();
-		curl_setopt($curl, CURLOPT_URL, 'http://ajax.googleapis.com/ajax/services/language/translate');
-		curl_setopt($curl, CURLOPT_HEADER, FALSE);
-		curl_setopt($curl, CURLOPT_TIMEOUT, 20);
-		curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE); // no echo, just return result
-		curl_setopt($curl, CURLOPT_POSTFIELDS, array(
-			'v' => '1.0',
-			'langpair' => "$this->srcLang|$this->destLang",
-			'q' => (string) $text
-		));
+		$options = array(
+			'http' => array(
+				'method' => 'POST',
+				'timeout' => 20,
+				'content' => http_build_query(array(
+					'v' => '1.0',
+					'langpair' => "$this->srcLang|$this->destLang",
+					'q' => (string) $text
+				), '', '&'),
+			),
+		);
 
-		$result = curl_exec($curl);
-		if (curl_errno($curl)) {
-			throw new GoogleTranslatorException('Server error: ' . curl_error($curl));
+		$f = @fopen('http://ajax.googleapis.com/ajax/services/language/translate', 'r', FALSE, stream_context_create($options));
+		if (!$f) {
+			throw new GoogleTranslatorException('Server error');
 		}
 
-		$code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-		if ($code != 200) {
-			throw new GoogleTranslatorException("Server error #$code", $code);
-		}
-
-		$json = @json_decode($result); // intentionally @
+		$json = @json_decode(stream_get_contents($f)); // intentionally @
 		if (!isset($json->responseData->translatedText)) {
 			throw new GoogleTranslatorException('Invalid server response');
 		}

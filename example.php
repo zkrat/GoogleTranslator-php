@@ -6,4 +6,3 @@ require_once 'GoogleTranslator.class.php';
 $translator = new GoogleTranslator('en', 'cs');
 
 echo $translator->translate('I am fine today.');
-
